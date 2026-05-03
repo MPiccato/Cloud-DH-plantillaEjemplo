@@ -1,7 +1,44 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Ejemplo simple de creación de un bucket
+Parameters:
+  BucketName:
+    Type: String
+    Description: "Nombre del bucket a crear"
+    Default: "cloudformation-dh-bucket"
+Mappings:
+  RegionMap:
+    us-east-1:
+      Environment: "Production"
+      RegionName: "US East 1"
+    us-east-2:
+      Environment: "Development"
+      RegionName: "US East 2"
+Conditions:
+  IsProdEnvironment: !Equals [!Ref "AWS::Region", "us-east-1"]
+
 Resources:
   MyBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: "cloudformation-dh-bucket"
+      BucketName: !Ref BucketName
+      AccessControl: "Private"
+      VersioningConfiguration:
+        Status: !If [IsProdEnvironment, "Enabled", "Suspended"]
+      Tags:
+        - Key: Aprendiendo
+          Value: "CloudFormation"
+        - Key: Environment
+          Value: !FindInMap [RegionMap, !Ref "AWS::Region", Environment]
+        - Key: RegionName
+          Value: !FindInMap [RegionMap, !Ref "AWS::Region", RegionName]
+Outputs:
+  BucketNameOutput:
+    Description: "Nombre del bucket creado"
+    Value: !Ref MyBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+  BucketURL:
+    Description: "URL del bucket creado"
+    Value: !GetAtt MyBucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketURL"
